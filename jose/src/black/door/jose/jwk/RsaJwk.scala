@@ -1,8 +1,7 @@
 package black.door.jose.jwk
 
 import java.security.KeyFactory
-import java.security.spec.RSAPublicKeySpec
-
+import java.security.spec.{RSAPrivateKeySpec, RSAPublicKeySpec}
 import scala.collection.immutable.Seq
 
 sealed trait RsaJwk extends Jwk
@@ -26,6 +25,30 @@ case class RsaPublicKey(
     val factory = KeyFactory.getInstance("RSA")
 
     factory.generatePublic(spec)
+  }
+
+  def withAlg(alg: Option[String]) = copy(alg = alg)
+}
+
+case class RsaPrivateKey(
+    n: BigInt,
+    d: BigInt,
+    alg: Option[String] = None,
+    use: Option[String] = None,
+    key_ops: Option[Seq[String]] = None,
+    kid: Option[String] = None
+  ) extends RsaJwk
+    with PrivateJwk {
+  val kty = "RSA"
+
+  private def modulus         = n
+  private def privateExponent = d
+
+  lazy val toJcaPrivateKey = {
+    val spec    = new RSAPrivateKeySpec(modulus.bigInteger, privateExponent.bigInteger)
+    val factory = KeyFactory.getInstance("RSA")
+
+    factory.generatePrivate(spec)
   }
 
   def withAlg(alg: Option[String]) = copy(alg = alg)

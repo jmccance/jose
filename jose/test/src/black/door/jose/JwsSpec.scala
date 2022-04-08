@@ -1,10 +1,10 @@
 package black.door.jose
 
 import black.door.jose.json.common._
-import black.door.jose.jwk.{OctJwk, RsaPublicKey}
+import black.door.jose.jwk.{OctJwk, RsaPrivateKey, RsaPublicKey}
 import black.door.jose.jws.{Jws, JwsHeader}
 import black.door.jose.test._
-import com.nimbusds.jose.crypto.{MACSigner, MACVerifier, RSASSASigner}
+import com.nimbusds.jose.crypto.{MACSigner, MACVerifier, RSASSASigner, RSASSAVerifier}
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import org.scalatest._
@@ -54,6 +54,19 @@ trait JwsSpec extends AnyWordSpec with should.Matchers with EitherValues {
 
   "RS signatures" should {
     val rsKey = new RSAKeyGenerator(2048).generate
+
+    "sign correctly" in {
+      val jws = Jws(JwsHeader("RS256"), """{"test":"data"}""".getBytes)
+      val rsPrivateKey = RsaPrivateKey(
+        rsKey.getModulus.decodeToBigInteger(),
+        rsKey.getPrivateExponent.decodeToBigInteger()
+      )
+
+      val compact = jws.sign(rsPrivateKey)
+
+      val verifier = new RSASSAVerifier(rsKey.toRSAPublicKey)
+      JWSObject.parse(compact).verify(verifier) shouldBe true
+    }
 
     "validate correctly" in {
       val signer = new RSASSASigner(rsKey)
