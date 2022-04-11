@@ -1,8 +1,15 @@
 package black.door.jose.json.circe.jwk
 
 import java.util.Base64
-
-import black.door.jose.jwk.{EcJwk, Jwk, OctJwk, P256KeyPair, P256PublicKey, RsaPublicKey}
+import black.door.jose.jwk.{
+  EcJwk,
+  Jwk,
+  OctJwk,
+  P256KeyPair,
+  P256PublicKey,
+  RsaPrivateKey,
+  RsaPublicKey
+}
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.generic.semiauto
 import io.circe.syntax._
@@ -84,8 +91,9 @@ trait JwkJsonSupport {
   }
 
   implicit val jwkEncoder: Encoder[Jwk] = Encoder.instance {
-    case d: EcJwk        => d.asJson
-    case d: RsaPublicKey => d.asJson
-    case d: OctJwk       => d.asJson
+    case d: EcJwk         => d.asJson
+    case d: RsaPublicKey  => d.asJson
+    case d: RsaPrivateKey => d.asJson
+    case d: OctJwk        => d.asJson
   }
 }

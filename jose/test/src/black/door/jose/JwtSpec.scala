@@ -2,13 +2,13 @@ package black.door.jose
 
 import java.time.Instant
 import java.util.{Base64, Date}
-
-import black.door.jose.jwk.P256KeyPair
+import black.door.jose.jwk.{P256KeyPair, RsaPrivateKey}
 import black.door.jose.jws.JwsHeader
 import black.door.jose.jwt.{Check, Claims, Jwt, JwtValidator}
 import black.door.jose.test.{left, right}
-import com.nimbusds.jose.crypto.{ECDSASigner, ECDSAVerifier}
-import com.nimbusds.jose.jwk.ECKey
+import com.nimbusds.jose.crypto.{ECDSASigner, ECDSAVerifier, RSASSAVerifier}
+import com.nimbusds.jose.jwk.{ECKey, RSAKey}
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import org.scalatest._
@@ -27,6 +27,7 @@ trait JwtSpec extends AnyFlatSpec with should.Matchers {
   implicit def payloadCustomDeserializer: ByteDeserializer[Claims[MyCustomClaimsClass]]
 
   val es256Key: P256KeyPair = P256KeyPair.generate.withAlg(Some("ES256"))
+  val rsaKey: RSAKey        = new RSAKeyGenerator(2048).generate
 
   def generateToken = {
     val claims = Claims(jti = Some("test token id"))
@@ -50,6 +51,21 @@ trait JwtSpec extends AnyFlatSpec with should.Matchers {
       es256Key.x.toByteArray
     )}","y":"${encoder.encodeToString(es256Key.y.toByteArray)}"}""")
     val nimbusVerifier = new ECDSAVerifier(nimbusJwk)
+    SignedJWT.parse(compact).verify(nimbusVerifier) shouldBe true
+  }
+
+  it should "sign with RS256" in {
+    val privateJwk = RsaPrivateKey(
+      n = rsaKey.getModulus.decodeToBigInteger(),
+      e = rsaKey.getPublicExponent.decodeToBigInteger(),
+      d = rsaKey.getPrivateExponent.decodeToBigInteger(),
+      alg = Some("RS256")
+    )
+    val claims  = Claims(jti = Some("test token id"), exp = Some(Instant.now.plusSeconds(600)))
+    val compact = Jwt.sign(claims, privateJwk)
+
+    val nimbusPublicJwk = rsaKey.toPublicJWK
+    val nimbusVerifier  = new RSASSAVerifier(nimbusPublicJwk)
     SignedJWT.parse(compact).verify(nimbusVerifier) shouldBe true
   }
 

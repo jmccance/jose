@@ -43,10 +43,13 @@ trait JwkJsonSupport {
       case _                  => ???
     }.transform((js: JsObject) => js + ("crv", JsString("P-256")) + ("kty", JsString("EC")))
 
-  def rsaJwkReads = Json.reads[RsaPublicKey]
+  def rsaJwkReads: Reads[RsaJwk] =
+    Json.reads[RsaPrivateKey].widen[RsaJwk].orElse(Json.reads[RsaPublicKey].widen[RsaJwk])
 
-  def rsaJwkWrites =
-    Json.writes[RsaPublicKey].transform((js: JsObject) => js + ("kty", JsString("RSA")))
+  def rsaJwkWrites = OWrites[RsaJwk] {
+    case k: RsaPublicKey  => Json.writes[RsaPublicKey].writes(k)
+    case k: RsaPrivateKey => Json.writes[RsaPrivateKey].writes(k)
+  }.transform { js: JsObject => js + ("kty", JsString("RSA")) }
 
   implicit def indexedBytesFormat = Format[IndexedSeq[Byte]](
     Reads {
@@ -76,9 +79,9 @@ trait JwkJsonSupport {
   })
 
   implicit val jwkWrites: OWrites[Jwk] = OWrites[Jwk] {
-    case key: EcJwk        => ecJwkWrites.writes(key)
-    case key: RsaPublicKey => rsaJwkWrites.writes(key)
-    case key: OctJwk       => octJwkFormat.writes(key)
+    case key: EcJwk  => ecJwkWrites.writes(key)
+    case key: RsaJwk => rsaJwkWrites.writes(key)
+    case key: OctJwk => octJwkFormat.writes(key)
   }
 }
 

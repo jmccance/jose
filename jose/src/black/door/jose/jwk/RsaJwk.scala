@@ -32,6 +32,7 @@ case class RsaPublicKey(
 
 case class RsaPrivateKey(
     n: BigInt,
+    e: BigInt,
     d: BigInt,
     alg: Option[String] = None,
     use: Option[String] = None,

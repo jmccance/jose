@@ -58,8 +58,9 @@ trait JwsSpec extends AnyWordSpec with should.Matchers with EitherValues {
     "sign correctly" in {
       val jws = Jws(JwsHeader("RS256"), """{"test":"data"}""".getBytes)
       val rsPrivateKey = RsaPrivateKey(
-        rsKey.getModulus.decodeToBigInteger(),
-        rsKey.getPrivateExponent.decodeToBigInteger()
+        n = rsKey.getModulus.decodeToBigInteger(),
+        e = rsKey.getPublicExponent.decodeToBigInteger(),
+        d = rsKey.getPrivateExponent.decodeToBigInteger()
       )
 
       val compact = jws.sign(rsPrivateKey)

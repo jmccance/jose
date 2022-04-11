@@ -1,6 +1,6 @@
 package black.door.jose
 
-import black.door.jose.jwk.{Jwk, OctJwk, P256KeyPair, RsaPublicKey}
+import black.door.jose.jwk.{Jwk, OctJwk, P256KeyPair, RsaPrivateKey, RsaPublicKey}
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator
 import com.nimbusds.jose.jwk.{ECKey, OctetSequenceKey, RSAKey}
 import org.scalatest._
@@ -38,11 +38,32 @@ trait JwkSpec extends AnyFlatSpec with should.Matchers with EitherValues {
     initialKey shouldEqual finalKey
   }
 
-  "RSA JWKs" should "serialize and deserialize" in {
+  "RSA public JWKs" should "serialize and deserialize" in {
     val public = new RSAKeyGenerator(2048).generate
     val initialKey = RsaPublicKey(
       n = public.getModulus.decodeToBigInteger,
       e = public.getPublicExponent.decodeToBigInteger,
+      alg = Some("RS256"),
+      kid = Some("1"),
+      use = Some("sig")
+    )
+
+    val initialJson = jwkSerializer(initialKey)
+
+    val intermediateKey  = RSAKey.parse(initialJson)
+    val intermediateJson = intermediateKey.toJSONString
+
+    val finalKey = Jwk.parse(intermediateJson).right.value
+
+    initialKey shouldEqual finalKey
+  }
+
+  "RSA private JWKs" should "serialize and deserialize" in {
+    val key = new RSAKeyGenerator(2048).generate
+    val initialKey = RsaPrivateKey(
+      n = key.getModulus.decodeToBigInteger(),
+      e = key.getPublicExponent.decodeToBigInteger(),
+      d = key.getPrivateExponent.decodeToBigInteger(),
       alg = Some("RS256"),
       kid = Some("1"),
       use = Some("sig")
